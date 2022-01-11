@@ -1,4 +1,18 @@
 {
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src"
+  "sourceRoot": "src",
+  "projects": {
+    "etherscan": {
+      "type": "library",
+      "root": "libs/etherscan",
+      "entryFile": "index",
+      "sourceRoot": "libs/etherscan/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/etherscan/tsconfig.lib.json"
+      }
+    }
+  },
+  "compilerOptions": {
+    "webpack": true
+  }
 }
