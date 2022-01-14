@@ -1,4 +1,4 @@
-# Test job (Etherium audit)
+# Etherium audit
 
 Rest API for auditing Ethereum transactions
 
@@ -24,7 +24,7 @@ $ make up
 
 ## Endpoints
 
-```/address/most-changed``` - Get the address that has changed the most in the last 100 blocks
+`/address/most-changed` - Get the address that has changed the most in the last 100 blocks
 
 ## App commands
 
