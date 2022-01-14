@@ -1,38 +1,40 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+# Test job (Etherium audit)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Rest API for auditing Ethereum transactions
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Run application
 
-## Description
+```bash
+# Clone repo
+$ git clone git@github.com:mdwitr0/etherium-audit.git
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+# Open repo directory
+$ cd etherium-audit
 
-## Installation
+# Create environment file
+$ cp example.env .env
+```
+
+Get api key in https://etherscan.io/myapikey and specify in the file .env the `ETHERSCAN_API_KEY` variable
+
+```bash
+# Start application containers
+$ make up
+```
+
+## Endpoints
+
+```/address/most-changed``` - Get the address that has changed the most in the last 100 blocks
+
+## App commands
+
+### Installation
 
 ```bash
 $ npm install
 ```
 
-## Running the app
+### Running the app
 
 ```bash
 # development
@@ -45,29 +47,49 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-## Test
+## Make commands
+
+### Container management
 
 ```bash
-# unit tests
-$ npm run test
+# Start containers
+$ make up
 
-# e2e tests
-$ npm run test:e2e
+# Stop containers
+$ make stop
 
-# test coverage
-$ npm run test:cov
+# Build containers w/o cache
+$ make rebuild
+
+# Restart containers
+$ make restart
+
+# Remove containers
+$ make down
+
+# Show status of containers
+$ make status
 ```
 
-## Support
+### Connecting to containers
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+# Run bash console for app container
+$ make console-app
 
-## Stay in touch
+# run bash console for redis container
+$ make console-redis
+```
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Viewing logs
 
-## License
+```bash
+# Show all logs
+$ make logs
 
-Nest is [MIT licensed](LICENSE).
+# Show app logs
+$ make logs-app
+
+# Show redis logs
+$ make logs-redis
+```
