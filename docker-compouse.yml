@@ -14,10 +14,6 @@ services:
       - redis
     networks:
       - backend
-    environment:
-      - REDIS_PORT=6379
-      - REDIS_HOST=redis
-      - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
   redis:
     container_name: ${PROJECT_NAME}_redis
     image: bitnami/redis:latest
