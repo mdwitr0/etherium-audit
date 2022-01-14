@@ -13,6 +13,7 @@ $ cd etherium-audit
 
 # Create environment file
 $ cp example.env .env
+$ cp ./app/example.env ./app/.env
 ```
 
 Get api key in https://etherscan.io/myapikey and specify in the file .env the `ETHERSCAN_API_KEY` variable
