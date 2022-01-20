@@ -29,48 +29,6 @@ export class ProxyService {
     this.cronUpdateBlocks();
   }
 
-  /* Calculates the sum of changes in the specified block range */
-  async calculateChangeAddresses(
-    startBlockNumber: string,
-    size: number,
-  ): Promise<{
-    [key: string]: number;
-  }> {
-    const blockNumbers = await this.getBlocksList(startBlockNumber, size);
-
-    const transactions = await this.getBlocksTransactions(blockNumbers);
-
-    const addresses = {};
-
-    for (const transaction of transactions) {
-      addresses[transaction.from] =
-        addresses[transaction.from] + parseInt(transaction.value) ||
-        parseInt(transaction.value);
-
-      addresses[transaction.to] =
-        addresses[transaction.to] + parseInt(transaction.value) ||
-        parseInt(transaction.value);
-    }
-
-    return addresses;
-  }
-
-  /* Returns the address whose value is greater than the others */
-  async getLargeValueAddress(addresses: { [key: string]: number }) {
-    const amount = Math.max.apply(
-      null,
-      Object.keys(addresses).map((key) => addresses[key]),
-    );
-    const hash = Object.keys(addresses).find(
-      (key) => addresses[key] === amount,
-    );
-
-    return {
-      hash: hash || '',
-      amount: amount || 0,
-    };
-  }
-
   /* Saves in redis and returns the block and its transactions */
   async saveBlock(blockNumber: string): Promise<BlockTransactionEntity> {
     const blockResponse = await this.ethProxyService.getBlockByNumber(

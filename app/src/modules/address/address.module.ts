@@ -4,6 +4,7 @@ import { AddressController } from './address.controller';
 import { ProxyModule } from '../proxy/proxy.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { getCacheConfig } from '../../configs/cache.config';
+import { EthAccountModule } from '@app/etherscan/modules/eth-account/eth-account.module';
 
 @Module({
   controllers: [AddressController],
@@ -15,6 +16,8 @@ import { getCacheConfig } from '../../configs/cache.config';
       inject: [ConfigService],
       useFactory: getCacheConfig,
     }),
+    EthAccountModule,
+    ConfigModule,
   ],
 })
 export class AddressModule {}
