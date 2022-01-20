@@ -14,7 +14,7 @@ import {
 export class EthProxyService {
   constructor(private readonly httpService: HttpService) {}
 
-  async getNumberLastBlock(apikey: string): Promise<string> {
+  async getNumberLastBlock(apikey: string): Promise<IProxyResponse<string>> {
     return firstValueFrom(
       this.httpService
         .get('api', {
@@ -28,7 +28,7 @@ export class EthProxyService {
           map((response) => {
             if (response.data.message === 'NOTOK')
               throw new Error(response.data.result);
-            return response.data.result;
+            return response.data;
           }),
           catchError((error) => {
             throw new Error(error);

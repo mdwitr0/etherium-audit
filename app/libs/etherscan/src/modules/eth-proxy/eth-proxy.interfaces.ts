@@ -1,7 +1,7 @@
 export const ETH_PROXY_SERVICE = 'ETH_PROXY_SERVICE';
 
 export interface IEthProxyService {
-  getNumberLastBlock(apikey: string): Promise<string>;
+  getNumberLastBlock(apikey: string): Promise<IProxyResponse<string>>;
 
   getBlockByNumber(
     tag: string,

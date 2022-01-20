@@ -13,7 +13,6 @@ import { CACHE_KEYS, CACHE_TTLS } from '../../constants/cache.contacts';
 import { Cron } from '@nestjs/schedule';
 import { CRON_TIMES, GET_NUMBER_BLOCKS } from '../../constants/cron.constants';
 import { BlockTransactionEntity } from './entities/blok-transactions.entity';
-import { TransactionEntity } from './entities/transactions.entity';
 
 @Injectable()
 export class ProxyService {
@@ -29,27 +28,100 @@ export class ProxyService {
     this.cronUpdateBlocks();
   }
 
+  /* Finds new and missing blocks in the cache and adds them to the queue */
+  async findsLastBlocks(size: number): Promise<void> {
+    this.logger.log(`Check last ${size} blocks`);
+
+    const numberLastBlockResponse =
+      await this.ethProxyService.getNumberLastBlock(
+        this.configService.get('ETHERSCAN_API_KEY'),
+      );
+    const numberLastBlock: number = parseInt(numberLastBlockResponse.result);
+
+    for (
+      let blockNumber = numberLastBlock - size;
+      blockNumber <= numberLastBlock;
+      blockNumber++
+    ) {
+      const hexBlockNumber = this.getHexNumber(blockNumber);
+      const cachedBlock = await this.cache.get(
+        `${CACHE_KEYS.BLOCK}:${hexBlockNumber}`,
+      );
+
+      if (!cachedBlock)
+        this.proxyQueue.add(JOB_NAMES.BLOCK_UPDATE, hexBlockNumber, {
+          jobId: hexBlockNumber,
+          lifo: true,
+        });
+    }
+
+    this.cache.set(
+      CACHE_KEYS.LATEST_BLOCK_NUMBER,
+      numberLastBlockResponse.result,
+      {
+        ttl: CACHE_TTLS.BLOCK,
+      },
+    );
+  }
+
+  /* Saves in redis and returns the block and its transactions */
+  async saveBlock(blockNumber: string): Promise<BlockTransactionEntity> {
+    const blockResponse = await this.ethProxyService.getBlockByNumber(
+      blockNumber,
+      true,
+      this.configService.get('ETHERSCAN_API_KEY'),
+    );
+
+    const block = <BlockTransactionEntity>(
+      instanceToPlain(new BlockTransactionEntity(blockResponse.result), {
+        strategy: 'excludeAll',
+      })
+    );
+
+    this.cache.set(`${CACHE_KEYS.BLOCK}:${blockNumber}`, block, {
+      ttl: CACHE_TTLS.BLOCK,
+    });
+
+    return block;
+  }
+
   /* Calculates the sum of changes in the specified block range */
   async calculateChangeAddresses(
-    startBlockNumber: string,
+    startBlockNumber: number,
     size: number,
-  ): Promise<{
-    [key: string]: number;
-  }> {
-    const blockNumbers = await this.getBlocksList(startBlockNumber, size);
-
-    const transactions = await this.getBlocksTransactions(blockNumbers);
-
+  ): Promise<{ [key: string]: number }> {
     const addresses = {};
 
-    for (const transaction of transactions) {
-      addresses[transaction.from] =
-        addresses[transaction.from] + parseInt(transaction.value) ||
-        parseInt(transaction.value);
+    for (
+      let blockNumber = startBlockNumber - size;
+      blockNumber <= startBlockNumber;
+      blockNumber++
+    ) {
+      let currentBlock: BlockTransactionEntity;
+      currentBlock = await this.cache.get(
+        `${CACHE_KEYS.BLOCK}:${this.getHexNumber(blockNumber)}`,
+      );
+      if (!currentBlock) {
+        this.logger.debug(
+          `Block not found in redis: ${this.getHexNumber(blockNumber)}`,
+        );
+        try {
+          currentBlock = await this.saveBlock(this.getHexNumber(blockNumber));
+        } catch (e) {
+          currentBlock = await this.saveBlock(this.getHexNumber(blockNumber));
+          this.logger.error(e);
+        }
+      }
 
-      addresses[transaction.to] =
-        addresses[transaction.to] + parseInt(transaction.value) ||
-        parseInt(transaction.value);
+      for (const transaction of currentBlock.transactions) {
+        addresses[transaction.from] =
+          addresses[transaction.from] + parseInt(transaction.value) ||
+          parseInt(transaction.value);
+
+        addresses[transaction.to] =
+          addresses[transaction.to] + parseInt(transaction.value) ||
+          parseInt(transaction.value);
+      }
     }
 
     return addresses;
@@ -68,110 +140,7 @@ export class ProxyService {
     return {
       hash: hash || '',
       amount: amount || 0,
-      addresses,
     };
-  }
-
-  /* Saves in redis and returns the block and its transactions */
-  async saveBlock(blockNumber: string): Promise<BlockTransactionEntity> {
-    const blockResponse = await this.ethProxyService.getBlockByNumber(
-      blockNumber,
-      true,
-      this.configService.get('ETHERSCAN_API_KEY'),
-    );
-
-    let block: BlockTransactionEntity;
-
-    try {
-      block = <BlockTransactionEntity>(
-        instanceToPlain(new BlockTransactionEntity(blockResponse.result), {
-          strategy: 'excludeAll',
-        })
-      );
-    } catch (e) {
-      this.logger.error(`Error saving block: ${blockNumber}`, e);
-
-      await setTimeout(() => {}, 1000);
-      block = <BlockTransactionEntity>(
-        instanceToPlain(new BlockTransactionEntity(blockResponse.result), {
-          strategy: 'excludeAll',
-        })
-      );
-    }
-
-    this.cache.set(`${CACHE_KEYS.BLOCK}:${blockNumber}`, block, {
-      ttl: CACHE_TTLS.BLOCK,
-    });
-
-    return block;
-  }
-
-  /* Find new and missing blocks in the cache and adds them to the queue */
-  async findLastBlocks(size: number): Promise<void> {
-    this.logger.log(`Check last ${size} blocks`);
-
-    const numberLastBlockResponse =
-      await this.ethProxyService.getNumberLastBlock(
-        this.configService.get('ETHERSCAN_API_KEY'),
-      );
-    const blockNumbers = await this.getBlocksList(
-      numberLastBlockResponse,
-      size,
-    );
-
-    for (const blockNumber of blockNumbers) {
-      const cachedBlock = await this.cache.get(
-        `${CACHE_KEYS.BLOCK}:${blockNumber}`,
-      );
-
-      if (!cachedBlock)
-        this.proxyQueue.add(JOB_NAMES.BLOCK_UPDATE, blockNumber, {
-          jobId: blockNumber,
-          lifo: true,
-        });
-    }
-
-    this.cache.set(CACHE_KEYS.LATEST_BLOCK_NUMBER, numberLastBlockResponse, {
-      ttl: CACHE_TTLS.BLOCK,
-    });
-  }
-
-  /* Returns transactions from all blocks specified in blockNumbers */
-  async getBlocksTransactions(blockNumbers): Promise<TransactionEntity[]> {
-    let transactions: TransactionEntity[] = [];
-
-    for (const blockNumber of blockNumbers) {
-      let currentBlock: BlockTransactionEntity;
-
-      currentBlock = await this.cache.get(`${CACHE_KEYS.BLOCK}:${blockNumber}`);
-      if (!currentBlock) {
-        this.logger.debug(`Block not found in redis: ${blockNumber}`);
-        currentBlock = await this.saveBlock(blockNumber);
-      }
-
-      transactions = transactions.concat(currentBlock.transactions);
-    }
-
-    return transactions;
-  }
-
-  /*
-   * Returns an array of block numbers.
-   * The array contains blocks from blockStartNumber to blockStartNumber - size
-   */
-  async getBlocksList(
-    blockStartNumber: string,
-    size: number,
-  ): Promise<string[]> {
-    const blockNumbers: string[] = [];
-
-    const blockNumber: number = parseInt(blockStartNumber);
-
-    for (let number = blockNumber - size; number <= blockNumber; number++) {
-      blockNumbers.push(this.getHexNumber(number));
-    }
-
-    return blockNumbers;
   }
 
   private getHexNumber(number: number): string {
@@ -181,6 +150,6 @@ export class ProxyService {
   /* Starting block updates with cron */
   @Cron(CRON_TIMES.BLOCK_UPDATE)
   private async cronUpdateBlocks() {
-    await this.findLastBlocks(GET_NUMBER_BLOCKS);
+    await this.findsLastBlocks(GET_NUMBER_BLOCKS);
   }
 }
