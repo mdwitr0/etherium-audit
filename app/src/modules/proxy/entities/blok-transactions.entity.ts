@@ -1,23 +1,14 @@
 import { Expose, Transform, Type } from 'class-transformer';
-
-class Transaction {
-  @Expose()
-  from: string;
-  @Expose()
-  to: string;
-  @Expose()
-  value: string;
-}
-
+import { TransactionEntity } from './transactions.entity';
 export class BlockTransactionEntity {
   @Expose()
   number: string;
   @Expose()
-  @Type(() => Transaction)
+  @Type(() => TransactionEntity)
   @Transform(({ value }) =>
     value.filter((transaction) => parseInt(transaction.value)),
   )
-  transactions: Transaction[];
+  transactions: TransactionEntity[];
 
   constructor(partial: Partial<BlockTransactionEntity>) {
     Object.assign(this, partial);
